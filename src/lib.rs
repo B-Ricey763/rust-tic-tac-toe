@@ -1,10 +1,15 @@
-use std::{error::Error, env, thread, time::Duration};
 use std::io::{self, Write, stdout};
+use std::{
+    error::Error, 
+    time::Duration,
+    env, 
+    thread 
+};
 use crossterm::{
-    ExecutableCommand,
+    event::{self, Event, KeyCode},
     terminal::{self, EnterAlternateScreen, LeaveAlternateScreen},
-    cursor,
-    event::{self, Event, KeyCode}
+    ExecutableCommand,
+    cursor
 };
 
 
@@ -45,26 +50,32 @@ enum Tile {
     O = -1,
 }
 
-type Board = [[Tile; MAX_LEN]; MAX_LEN];
+fn display(board: &mut [Tile; 9]) {
+    for tile in board {
+    }
+}
 
 pub fn run() -> Result<(), Box<dyn Error>> {
     let mut stdout = stdout();
-    let mut board: Board = [[Tile::Empty; 3]; 3];
+    let mut board = [Tile::Empty; 9];
     stdout.execute(EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;
     stdout.lock();
 
-    stdout.execute(cursor::MoveTo(5, 5));
+    stdout.execute(cursor::MoveTo(0, 0));
     write!(&mut stdout, "Hello World!")?;
     stdout.flush();
 
     loop {
         if let Event::Key(event) = event::read()? {
-            match event.code 
-                KeyCode::Up => println!("UP"),
+            let (r, c) = match event.code {
+                KeyCode::Up => (1, 0),
+                KeyCode::Down => (-1, 0),
+                KeyCode::Left => (0, -1),
+                KeyCode::Right => (0, 1),
                 KeyCode::Esc => break,
-                _ => (),
-            }
+                _ => (0, 0),
+            };
         }
     }
     
