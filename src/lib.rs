@@ -7,19 +7,6 @@ use crossterm::{
     event::{self, Event, KeyCode}
 };
 
-
-/* 
-#[derive(Copy, Clone)]
-enum Tile {
-    // Enum variants can also have values
-    Empty = 0,
-    Circle = 1,
-    Cross = -1,
-}
-
-let tiles = [Tile::Empty, Tile::Empty, Tile::Cross];
-tiles.iter().map(|tile| *tile as i32).sum::<i32>()
-*/
 const MAX_LEN: usize = 3;
 
 pub struct Config {
@@ -60,7 +47,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
     loop {
         if let Event::Key(event) = event::read()? {
-            match event.code 
+            match event.code {
                 KeyCode::Up => println!("UP"),
                 KeyCode::Esc => break,
                 _ => (),
