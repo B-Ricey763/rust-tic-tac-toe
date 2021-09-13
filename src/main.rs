@@ -1,3 +1,6 @@
+/* 
+ * NOTE: use ruscii to actually make this game good
+ */
 use std::{process, env};
 
 use tic_tac_toe::Config;
