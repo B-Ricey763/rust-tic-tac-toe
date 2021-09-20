@@ -1,5 +1,7 @@
 use std::io::{self, Write, stdout};
 use std::{
+    self,
+    fmt,
     error::Error, 
     time::Duration,
     env, 
@@ -49,8 +51,13 @@ impl Board {
         }
     }
 
-    fn display(&self) {
-        let mut stdout = stdout();
+    fn set_tile(&mut self, tile: Tile, index: usize) {
+        self.array[index] = tile;
+    }
+}
+
+impl fmt::Display for Board {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut display_str = String::new();
         for (i, tile) in self.array.iter().enumerate() {
             let col = i % 3;
@@ -66,11 +73,7 @@ impl Board {
                 display_str.push_str("\r\n");
             }
         }
-        writeln!(&mut stdout, "{}", display_str);
-    }
-    fn set_tile(&mut self, tile: Tile, row: u16, col: u16) {
-        let index = (row * 3 + col) as usize;
-        self.array[index] = tile;
+        write!(f, "{}", display_str)
     }
 }
 
@@ -79,6 +82,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut board = Board::new();
     stdout.execute(EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;
+    stdout.flush()?;
     stdout.lock();
 
     stdout.execute(cursor::MoveTo(0, 0));
@@ -89,22 +93,23 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         stdout.execute(terminal::Clear(terminal::ClearType::All));
         stdout.execute(cursor::SavePosition);
         stdout.execute(cursor::MoveTo(0,0));
-        board.display();
+        write!(&mut stdout, "{}", board);
         stdout.flush()?;
         stdout.execute(cursor::RestorePosition);
         if let Event::Key(event) = event::read()? {
-            let (r, c) = match event.code {
-                KeyCode::Up => (0, -1),
-                KeyCode::Down => (0, 1),
-                KeyCode::Left => (-1, 0),
-                KeyCode::Right => (1, 0),
-                KeyCode::Esc => break,
-                _ => (0, 0),
+            let result = match event.code {
+                KeyCode::Char(c) => {
+                    if Some(c) = c.to_digit(10) && c >= 0 && c < 9 {
+                        Some(c)
+                    } else {
+                        None
+                    }
+                }
             };
-
-            if event.code == KeyCode::Enter {
+            // TODO: Add a way to escape, using esc or q
+            if Some(index) = result {
                 // We have to switch these for some reason
-                board.set_tile(Tile::X, col, row);
+                board.set_tile(Tile::X, index);
             }
 
             let (cursor_r, cursor_c) = cursor::position()?;
@@ -116,6 +121,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     
     terminal::disable_raw_mode()?;
     stdout.execute(LeaveAlternateScreen)?;
+    stdout.flush();
     Ok(())
 }
 
