@@ -1,11 +1,9 @@
-use std::io::{self, Write, stdout};
+use std::io::{Write, stdout};
 use std::{
     self,
     fmt,
     error::Error, 
-    time::Duration,
     env, 
-    thread 
 };
 
 use crossterm::{
@@ -14,8 +12,6 @@ use crossterm::{
     ExecutableCommand,
     cursor
 };
-
-const MAX_LEN: usize = 3;
 
 pub struct Config {
     pub single_player: bool,
@@ -61,7 +57,6 @@ impl fmt::Display for Board {
         let mut display_str = String::new();
         for (i, tile) in self.array.iter().enumerate() {
             let col = i % 3;
-            let row = i / 3;
 
             display_str.push(match tile {
                 Tile::Empty => '*',
@@ -77,51 +72,59 @@ impl fmt::Display for Board {
     }
 }
 
+/**
+ * This function works, but the stuff updates too quickly
+ * 
+ */
+fn log(s: &str) -> Result<(), Box<dyn Error>> {
+    let mut stdout = stdout();
+    stdout.execute(cursor::SavePosition)?;
+    stdout.execute(cursor::MoveTo(10, 0))?;
+    write!(&mut stdout, "{}", s)?;
+    stdout.flush()?;
+    stdout.execute(cursor::RestorePosition)?;
+
+    Ok(())
+}
+
 pub fn run() -> Result<(), Box<dyn Error>> {
     let mut stdout = stdout();
     let mut board = Board::new();
+    let mut is_x = true;
     stdout.execute(EnterAlternateScreen)?;
     terminal::enable_raw_mode()?;
     stdout.flush()?;
     stdout.lock();
 
-    stdout.execute(cursor::MoveTo(0, 0));
+    stdout.execute(cursor::MoveTo(0, 0))?;
 
-    let mut row = 0;
-    let mut col = 0;
     loop {
-        stdout.execute(terminal::Clear(terminal::ClearType::All));
-        stdout.execute(cursor::SavePosition);
-        stdout.execute(cursor::MoveTo(0,0));
-        write!(&mut stdout, "{}", board);
+        stdout.execute(terminal::Clear(terminal::ClearType::All))?;
+        stdout.execute(cursor::SavePosition)?;
+        stdout.execute(cursor::MoveTo(0,0))?;
+        write!(&mut stdout, "{}", board)?;
         stdout.flush()?;
-        stdout.execute(cursor::RestorePosition);
+        stdout.execute(cursor::RestorePosition)?;
         if let Event::Key(event) = event::read()? {
-            let result = match event.code {
-                KeyCode::Char(c) => {
-                    if Some(c) = c.to_digit(10) && c >= 0 && c < 9 {
-                        Some(c)
-                    } else {
-                        None
+            match event.code { 
+                KeyCode::Char(c @ '1'..='9') => {
+                    if let Some(num) = c.to_digit(10) {
+                        let tile = if is_x { Tile::X } else { Tile::O };
+                        board.set_tile(tile, (num - 1) as usize);
+                        is_x = !is_x;
                     }
-                }
-            };
-            // TODO: Add a way to escape, using esc or q
-            if Some(index) = result {
-                // We have to switch these for some reason
-                board.set_tile(Tile::X, index);
+                }, 
+                KeyCode::Esc => break,
+                // Maybe redundant
+                _ => ()
             }
-
-            let (cursor_r, cursor_c) = cursor::position()?;
-            row = (cursor_r as i8 + r) as u16;
-            col = (cursor_c as i8 + c) as u16;
-            stdout.execute(cursor::MoveTo(row, col));
         }
     }
     
     terminal::disable_raw_mode()?;
     stdout.execute(LeaveAlternateScreen)?;
-    stdout.flush();
+    stdout.flush()?;
+
     Ok(())
 }
 
